@@ -1,33 +1,32 @@
 package com.tareavacaciones.brokermessagebe.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.tareavacaciones.brokermessagebe.models.CreateOrderDto;
+import com.tareavacaciones.brokermessagebe.models.OrderRetryJob;
 import com.tareavacaciones.brokermessagebe.models.PaymentRetryJob;
 import com.tareavacaciones.brokermessagebe.models.ProcesarPagoDto;
+import com.tareavacaciones.brokermessagebe.repository.OrderRetryJobRepository;
 import com.tareavacaciones.brokermessagebe.repository.PaymentRetryJobRepository;
-import com.tareavacaciones.brokermessagebe.response.GeneralResponse;
 import com.tareavacaciones.brokermessagebe.service.EmailService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 
 @Service
 @Slf4j
-public class PaymentRetryScheduler
-        extends AbstractRetryScheduler<PaymentRetryJob> {
+public class OrderRetryScheduler
+        extends AbstractRetryScheduler<OrderRetryJob> {
 
-    private final PaymentRetryJobRepository repository;
+    private final OrderRetryJobRepository repository;
     private final RestTemplate restTemplate;
 
-    public PaymentRetryScheduler(ObjectMapper objectMapper,
-                                 EmailService emailService,
-                                 PaymentRetryJobRepository repository,
-                                 RestTemplate restTemplate) {
+    public OrderRetryScheduler(ObjectMapper objectMapper,
+                               EmailService emailService,
+                               OrderRetryJobRepository repository,
+                               RestTemplate restTemplate) {
         super(objectMapper, emailService);
         this.repository = repository;
         this.restTemplate = restTemplate;
@@ -40,30 +39,30 @@ public class PaymentRetryScheduler
     }
 
     @Override
-    protected void retry(PaymentRetryJob job) throws Exception {
+    protected void retry(OrderRetryJob job) throws Exception {
 
-        ProcesarPagoDto dto =
-                objectMapper.readValue(job.getRequestData(), ProcesarPagoDto.class);
+        CreateOrderDto dto =
+                objectMapper.readValue(job.getRequestData(), CreateOrderDto.class);
 
-        String url = "http://localhost:8085/pagos/procesar";
+        String url = "http://localhost:8085/ordenes";
 
         var response = restTemplate.postForEntity(url, dto, Object.class);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new Exception("Error en pago");
+            throw new Exception("Error en orden");
         }
 
         job.setStep("SEND_EMAIL");
     }
 
     @Override
-    protected void markAsSuccess(PaymentRetryJob job) {
+    protected void markAsSuccess(OrderRetryJob job) {
         job.setStatus("SUCCESS");
         repository.save(job);
     }
 
     @Override
-    protected void handleFailure(PaymentRetryJob job, Exception e) {
+    protected void handleFailure(OrderRetryJob job, Exception e) {
 
         job.setRetryCount(job.getRetryCount() + 1);
         job.setErrorMessage(e.getMessage());
