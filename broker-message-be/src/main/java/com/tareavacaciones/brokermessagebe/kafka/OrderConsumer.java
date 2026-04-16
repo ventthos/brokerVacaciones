@@ -27,6 +27,11 @@ public class OrderConsumer {
 
         log.info("🔥 MENSAJE RECIBIDO DE ORDENES: {}", message);
 
+        if (message.contains("\"data\":")) {
+            log.info("⏭️ Ignorando mensaje de actualización");
+            return;
+        }
+
         try {
             CreateOrderDto dto = objectMapper.readValue(message, CreateOrderDto.class);
 

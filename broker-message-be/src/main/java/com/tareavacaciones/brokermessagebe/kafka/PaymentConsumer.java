@@ -24,6 +24,11 @@ public class PaymentConsumer {
 
         log.info("🔥 MENSAJE RECIBIDO: {}", message);
 
+        if (message.contains("\"data\":")) {
+            log.info("⏭️ Ignorando mensaje de actualización");
+            return;
+        }
+
         try {
             ProcesarPagoDto dto = objectMapper.readValue(message, ProcesarPagoDto.class);
 

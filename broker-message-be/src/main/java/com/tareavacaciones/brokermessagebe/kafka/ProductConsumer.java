@@ -27,6 +27,11 @@ public class ProductConsumer {
 
         log.info("🔥 MENSAJE RECIBIDO EN PRODUCTO: {}", message);
 
+        if (message.contains("\"data\":")) {
+            log.info("⏭️ Ignorando mensaje de actualización");
+            return;
+        }
+
         try {
             CreateProductDto dto = objectMapper.readValue(message, CreateProductDto.class);
 

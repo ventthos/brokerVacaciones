@@ -15,6 +15,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.OffsetDateTime;
 
+import org.springframework.kafka.core.KafkaTemplate;
+
 @Service
 @Slf4j
 public class OrderRetryScheduler
@@ -25,17 +27,38 @@ public class OrderRetryScheduler
 
     public OrderRetryScheduler(ObjectMapper objectMapper,
                                EmailService emailService,
+                               KafkaTemplate<String, String> kafkaTemplate,
                                OrderRetryJobRepository repository,
                                RestTemplate restTemplate) {
-        super(objectMapper, emailService);
+        super(objectMapper, emailService, kafkaTemplate);
         this.repository = repository;
         this.restTemplate = restTemplate;
     }
 
     @Scheduled(fixedRate = 10000)
-    public void processPayments() {
+    public void processOrders() {
         var jobs = repository.findScheduledJobs(OffsetDateTime.now());
         processJobs(jobs);
+    }
+
+    @Override
+    protected String getRequestData(OrderRetryJob job) {
+        return job.getRequestData();
+    }
+
+    @Override
+    protected String getUpdateTopic() {
+        return "order_retry_jobs";
+    }
+
+    @Override
+    protected String getJobId(OrderRetryJob job) {
+        return job.getId().toString();
+    }
+
+    @Override
+    protected boolean isFinalFailure(OrderRetryJob job) {
+        return "FAILED".equals(job.getStatus());
     }
 
     @Override

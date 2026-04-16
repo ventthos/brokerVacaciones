@@ -15,6 +15,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.OffsetDateTime;
 
+import org.springframework.kafka.core.KafkaTemplate;
+
 @Service
 @Slf4j
 public class ProductRetryScheduler
@@ -25,9 +27,10 @@ public class ProductRetryScheduler
 
     public ProductRetryScheduler(ObjectMapper objectMapper,
                                  EmailService emailService,
+                                 KafkaTemplate<String, String> kafkaTemplate,
                                  ProductRetryJobRepository repository,
                                  RestTemplate restTemplate) {
-        super(objectMapper, emailService);
+        super(objectMapper, emailService, kafkaTemplate);
         this.repository = repository;
         this.restTemplate = restTemplate;
     }
@@ -36,6 +39,26 @@ public class ProductRetryScheduler
     public void processPayments() {
         var jobs = repository.findScheduledJobs(OffsetDateTime.now());
         processJobs(jobs);
+    }
+
+    @Override
+    protected String getRequestData(ProductRetryJob job) {
+        return job.getRequestData();
+    }
+
+    @Override
+    protected String getUpdateTopic() {
+        return "product_retry_jobs";
+    }
+
+    @Override
+    protected String getJobId(ProductRetryJob job) {
+        return job.getId().toString();
+    }
+
+    @Override
+    protected boolean isFinalFailure(ProductRetryJob job) {
+        return "FAILED".equals(job.getStatus());
     }
 
     @Override
