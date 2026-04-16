@@ -67,7 +67,7 @@ public class ProductRetryScheduler
         job.setRetryCount(job.getRetryCount() + 1);
         job.setErrorMessage(e.getMessage());
 
-        if (job.getRetryCount() >= 5) {
+        if (job.getRetryCount() >= 2) {
             job.setStatus("FAILED");
             sendFailureEmail();
         } else {
@@ -76,5 +76,15 @@ public class ProductRetryScheduler
         }
 
         repository.save(job);
+    }
+
+    @Override
+    protected void sendFailureSendingEmail(ProductRetryJob job, Exception e) {
+        super.sendFailureSendingEmail(job, e);
+
+        job.setErrorMessage("Orden completada, pero falló el envío de confirmación: " + e.getMessage());
+        job.setStatus("ERROR");
+        repository.save(job);
+
     }
 }

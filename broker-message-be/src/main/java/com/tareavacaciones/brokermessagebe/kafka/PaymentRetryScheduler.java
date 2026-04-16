@@ -2,6 +2,7 @@ package com.tareavacaciones.brokermessagebe.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.tareavacaciones.brokermessagebe.models.OrderRetryJob;
 import com.tareavacaciones.brokermessagebe.models.PaymentRetryJob;
 import com.tareavacaciones.brokermessagebe.models.ProcesarPagoDto;
 import com.tareavacaciones.brokermessagebe.repository.PaymentRetryJobRepository;
@@ -68,7 +69,7 @@ public class PaymentRetryScheduler
         job.setRetryCount(job.getRetryCount() + 1);
         job.setErrorMessage(e.getMessage());
 
-        if (job.getRetryCount() >= 5) {
+        if (job.getRetryCount() >= 2) {
             job.setStatus("FAILED");
             sendFailureEmail();
         } else {
@@ -77,5 +78,15 @@ public class PaymentRetryScheduler
         }
 
         repository.save(job);
+    }
+
+    @Override
+    protected void sendFailureSendingEmail(PaymentRetryJob job, Exception e) {
+        super.sendFailureSendingEmail(job, e);
+
+        job.setErrorMessage("Orden completada, pero falló el envío de confirmación: " + e.getMessage());
+        job.setStatus("ERROR");
+        repository.save(job);
+
     }
 }

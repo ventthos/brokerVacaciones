@@ -26,9 +26,16 @@ public abstract class AbstractRetryScheduler<T> {
 
     private void processJob(T job) {
         try {
-            retry(job);          // PASO A (abstracto)
-            sendSuccessEmail(job); // PASO B
-            markAsSuccess(job); // PASO C
+            retry(job);
+
+            try {
+                sendSuccessEmail(job); // PASO B
+            } catch (Exception e) {
+                sendFailureSendingEmail(job, e);
+            }
+
+            markAsSuccess(job);
+
         } catch (Exception e) {
             handleFailure(job, e);
         }
@@ -48,11 +55,20 @@ public abstract class AbstractRetryScheduler<T> {
         );
     }
 
+
     protected void sendFailureEmail() {
         emailService.sendEmail(
                 "ventthos@gmail.com",
                 "Error",
                 "Falló después de varios intentos la operación solicitada"
+        );
+    }
+
+    protected void sendFailureSendingEmail(T job, Exception e){
+        emailService.sendEmail(
+                "ventthos@gmail.com",
+                "Error",
+                "El elemento ha sido guardado pero no se pudo mandar el email"
         );
     }
 }
