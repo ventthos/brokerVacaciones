@@ -58,6 +58,11 @@ public class PaymentRetryScheduler
     }
 
     @Override
+    protected void saveJob(PaymentRetryJob job) {
+        repository.save(job);
+    }
+
+    @Override
     protected void markAsSuccess(PaymentRetryJob job) {
         job.setStatus("SUCCESS");
         repository.save(job);

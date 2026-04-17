@@ -1,15 +1,15 @@
 package com.tareavacaciones.brokermessagebe.models;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import org.hibernate.annotations.Type;
 
 @Entity
 @Table(name = "payments_retry_jobs")
@@ -18,7 +18,7 @@ import org.hibernate.annotations.Type;
 @NoArgsConstructor
 @Builder
 
-public class PaymentRetryJob {
+public class PaymentRetryJob implements RetryJob {
 
     @Id
     @GeneratedValue
@@ -30,11 +30,17 @@ public class PaymentRetryJob {
     @Column(name = "orden_id")
     private String ordenId;
 
-    @Column(name = "request_data", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "request_data")
     private String requestData;
 
-    @Column(name = "response_data", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "response_data")
     private String responseData;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "step_status")
+    private String stepStatus;
 
     private String action;
 

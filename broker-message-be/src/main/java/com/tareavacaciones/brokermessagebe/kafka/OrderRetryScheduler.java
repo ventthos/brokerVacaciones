@@ -56,6 +56,11 @@ public class OrderRetryScheduler
     }
 
     @Override
+    protected void saveJob(OrderRetryJob job) {
+        repository.save(job);
+    }
+
+    @Override
     protected void markAsSuccess(OrderRetryJob job) {
         job.setStatus("SUCCESS");
         repository.save(job);

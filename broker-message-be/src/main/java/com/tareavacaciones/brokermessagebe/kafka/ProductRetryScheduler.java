@@ -56,6 +56,11 @@ public class ProductRetryScheduler
     }
 
     @Override
+    protected void saveJob(ProductRetryJob job) {
+        repository.save(job);
+    }
+
+    @Override
     protected void markAsSuccess(ProductRetryJob job) {
         job.setStatus("SUCCESS");
         repository.save(job);

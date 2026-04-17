@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -16,7 +18,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Builder
 
-public class ProductRetryJob {
+public class ProductRetryJob implements RetryJob {
 
     @Id
     @GeneratedValue
@@ -25,11 +27,17 @@ public class ProductRetryJob {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "request_data", columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "request_data")
     private String requestData;
 
-    @Column(name = "response_data", columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "response_data")
     private String responseData;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "step_status")
+    private String stepStatus;
 
     private String action;
 
