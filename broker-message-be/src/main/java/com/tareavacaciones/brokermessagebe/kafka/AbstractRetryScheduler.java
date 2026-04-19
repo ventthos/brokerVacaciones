@@ -31,36 +31,64 @@ public abstract class AbstractRetryScheduler<T extends RetryJob> {
 
     private void processJob(T job) {
         try {
-            try {
-                retry(job);
-                updateStepStatus(job, "retry", "SUCCESS", "Retry successful");
-            } catch (Exception e) {
-                updateStepStatus(job, "retry", "ERROR", e.getMessage());
-                saveJob(job);
-                throw e;
+            if (!isStepSuccess(job, "retry")) {
+                try {
+                    retry(job);
+                    updateStepStatus(job, "retry", "SUCCESS", "Retry successful");
+                    saveJob(job);
+                } catch (Exception e) {
+                    updateStepStatus(job, "retry", "ERROR", e.getMessage());
+                    saveJob(job);
+                    throw e;
+                }
             }
-            saveJob(job);
 
-            try {
-                sendSuccessEmail(job);
-                updateStepStatus(job, "sendEmail", "SUCCESS", "Email sent successfully");
-            } catch (Exception e) {
-                updateStepStatus(job, "sendEmail", "ERROR", "Error al enviar el correo: " + e.getMessage());
-                saveJob(job);
-                sendFailureSendingEmail(job, e);
+            if (!isStepSuccess(job, "sendEmail")) {
+                try {
+                    sendSuccessEmail(job);
+                    updateStepStatus(job, "sendEmail", "SUCCESS", "Email sent successfully");
+                    saveJob(job);
+                } catch (Exception e) {
+                    updateStepStatus(job, "sendEmail", "ERROR", "Error al enviar el correo: " + e.getMessage());
+                    saveJob(job);
+                    throw e;
+                }
             }
-            saveJob(job);
 
-            updateStepStatus(job, "updateRetryJobs", "SUCCESS", "Elemento guardado correctamente");
-            markAsSuccess(job);
+            if (!isStepSuccess(job, "updateRetryJobs")) {
+                try {
+                    updateStepStatus(job, "updateRetryJobs", "SUCCESS", "Elemento guardado correctamente");
+                    markAsSuccess(job);
+                } catch (Exception e) {
+                    updateStepStatus(job, "updateRetryJobs", "ERROR", "Error al actualizar estado final: " + e.getMessage());
+                    saveJob(job);
+                    throw e;
+                }
+            }
 
         } catch (Exception e) {
-            updateStepStatus(job, "updateRetryJobs", "ERROR", "Fallo en la operación: " + e.getMessage());
             handleFailure(job, e);
         }
     }
 
     protected abstract void saveJob(T job);
+
+    protected boolean isStepSuccess(T job, String step) {
+        try {
+            if (job.getStepStatus() == null || job.getStepStatus().isEmpty()) {
+                return false;
+            }
+            Map<String, StepResult> statusMap = objectMapper.readValue(
+                    job.getStepStatus(),
+                    new TypeReference<Map<String, StepResult>>() {}
+            );
+            StepResult result = statusMap.get(step);
+            return result != null && "SUCCESS".equals(result.getStatus());
+        } catch (Exception e) {
+            log.error("Error checking step status", e);
+            return false;
+        }
+    }
 
     protected void updateStepStatus(T job, String step, String status, String message) {
         try {
@@ -80,9 +108,24 @@ public abstract class AbstractRetryScheduler<T extends RetryJob> {
 
     protected abstract void retry(T job) throws Exception;
 
-    protected abstract void markAsSuccess(T job);
+    protected void markAsSuccess(T job) {
+        job.setStatus("SUCCESS");
+        saveJob(job);
+    }
 
-    protected abstract void handleFailure(T job, Exception e);
+    protected void handleFailure(T job, Exception e) {
+        job.setRetryCount(job.getRetryCount() + 1);
+        job.setErrorMessage(e.getMessage());
+
+        if (job.getRetryCount() >= 2) {
+            job.setStatus("FAILED");
+            sendFailureEmail();
+        } else {
+            job.setStatus("SCHEDULED");
+            job.setNextRunAt(java.time.OffsetDateTime.now().plusSeconds(10));
+        }
+        saveJob(job);
+    }
 
     protected void sendSuccessEmail(T job) throws Exception {
         emailService.sendEmail(

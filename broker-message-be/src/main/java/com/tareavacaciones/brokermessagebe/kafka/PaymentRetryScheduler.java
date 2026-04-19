@@ -61,37 +61,4 @@ public class PaymentRetryScheduler
     protected void saveJob(PaymentRetryJob job) {
         repository.save(job);
     }
-
-    @Override
-    protected void markAsSuccess(PaymentRetryJob job) {
-        job.setStatus("SUCCESS");
-        repository.save(job);
-    }
-
-    @Override
-    protected void handleFailure(PaymentRetryJob job, Exception e) {
-
-        job.setRetryCount(job.getRetryCount() + 1);
-        job.setErrorMessage(e.getMessage());
-
-        if (job.getRetryCount() >= 2) {
-            job.setStatus("FAILED");
-            sendFailureEmail();
-        } else {
-            job.setStatus("SCHEDULED");
-            job.setNextRunAt(OffsetDateTime.now().plusSeconds(10));
-        }
-
-        repository.save(job);
-    }
-
-    @Override
-    protected void sendFailureSendingEmail(PaymentRetryJob job, Exception e) {
-        super.sendFailureSendingEmail(job, e);
-
-        job.setErrorMessage("Orden completada, pero falló el envío de confirmación: " + e.getMessage());
-        job.setStatus("ERROR");
-        repository.save(job);
-
-    }
 }
