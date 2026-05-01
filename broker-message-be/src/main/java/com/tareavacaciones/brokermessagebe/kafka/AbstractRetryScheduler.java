@@ -34,7 +34,7 @@ public abstract class AbstractRetryScheduler<T extends RetryJob> {
             if (!isStepSuccess(job, "retry")) {
                 try {
                     retry(job);
-                    updateStepStatus(job, "retry", "SUCCESS", "Retry successful");
+                    updateStepStatus(job, "retry", "SUCCESS", "Elemento guardado");
                     saveJob(job);
                 } catch (Exception e) {
                     updateStepStatus(job, "retry", "ERROR", e.getMessage());
@@ -46,7 +46,7 @@ public abstract class AbstractRetryScheduler<T extends RetryJob> {
             if (!isStepSuccess(job, "sendEmail")) {
                 try {
                     sendSuccessEmail(job);
-                    updateStepStatus(job, "sendEmail", "SUCCESS", "Email sent successfully");
+                    updateStepStatus(job, "sendEmail", "SUCCESS", "Email enviado");
                     saveJob(job);
                 } catch (Exception e) {
                     updateStepStatus(job, "sendEmail", "ERROR", "Error al enviar el correo: " + e.getMessage());
