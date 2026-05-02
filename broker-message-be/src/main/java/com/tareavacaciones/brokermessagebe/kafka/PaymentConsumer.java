@@ -48,7 +48,7 @@ public class PaymentConsumer {
         }
     }
 
-    @KafkaListener(topics = "order_debt_payment", groupId = "payment-group")
+    @KafkaListener(topics = "payment_received_events", groupId = "payment-group")
     public void listenOrderDebtPayment(String message) {
         log.info("💰 MENSAJE DE PAGO DE DEUDA RECIBIDO: {}", message);
         try {
