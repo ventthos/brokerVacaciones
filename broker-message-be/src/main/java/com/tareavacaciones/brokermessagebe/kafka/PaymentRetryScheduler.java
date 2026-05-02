@@ -41,7 +41,7 @@ public class PaymentRetryScheduler
     }
 
     @Override
-    protected void retry(PaymentRetryJob job) throws Exception {
+    public void retry(PaymentRetryJob job) throws Exception {
 
         ProcesarPagoDto dto =
                 objectMapper.readValue(job.getRequestData(), ProcesarPagoDto.class);
@@ -58,7 +58,7 @@ public class PaymentRetryScheduler
     }
 
     @Override
-    protected void saveJob(PaymentRetryJob job) {
+    public void saveJob(PaymentRetryJob job) {
         repository.save(job);
     }
 }

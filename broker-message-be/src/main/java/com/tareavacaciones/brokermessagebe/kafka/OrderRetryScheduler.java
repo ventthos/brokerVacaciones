@@ -39,7 +39,7 @@ public class OrderRetryScheduler
     }
 
     @Override
-    protected void retry(OrderRetryJob job) throws Exception {
+    public void retry(OrderRetryJob job) throws Exception {
 
         CreateOrderDto dto =
                 objectMapper.readValue(job.getRequestData(), CreateOrderDto.class);
@@ -56,7 +56,7 @@ public class OrderRetryScheduler
     }
 
     @Override
-    protected void saveJob(OrderRetryJob job) {
+    public void saveJob(OrderRetryJob job) {
         repository.save(job);
     }
 }

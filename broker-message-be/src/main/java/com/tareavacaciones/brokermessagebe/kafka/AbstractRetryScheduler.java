@@ -2,6 +2,10 @@ package com.tareavacaciones.brokermessagebe.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.tareavacaciones.brokermessagebe.chain.JobCompletionHandler;
+import com.tareavacaciones.brokermessagebe.chain.JobEmailHandler;
+import com.tareavacaciones.brokermessagebe.chain.JobExecutionHandler;
+import com.tareavacaciones.brokermessagebe.chain.RetryHandler;
 import com.tareavacaciones.brokermessagebe.models.RetryJob;
 import com.tareavacaciones.brokermessagebe.models.StepResult;
 import com.tareavacaciones.brokermessagebe.service.EmailService;
@@ -16,11 +20,24 @@ public abstract class AbstractRetryScheduler<T extends RetryJob> {
 
     protected final ObjectMapper objectMapper;
     protected final EmailService emailService;
+    protected final RetryHandler<T> firstHandler;
 
     public AbstractRetryScheduler(ObjectMapper objectMapper,
                                   EmailService emailService) {
         this.objectMapper = objectMapper;
         this.emailService = emailService;
+        this.firstHandler = buildChain();
+    }
+
+    protected RetryHandler<T> buildChain() {
+        JobExecutionHandler<T> executionHandler = new JobExecutionHandler<>();
+        JobEmailHandler<T> emailHandler = new JobEmailHandler<>();
+        JobCompletionHandler<T> completionHandler = new JobCompletionHandler<>();
+
+        executionHandler.setNext(emailHandler);
+        emailHandler.setNext(completionHandler);
+
+        return executionHandler;
     }
 
     public void processJobs(List<T> jobs) {
@@ -31,49 +48,15 @@ public abstract class AbstractRetryScheduler<T extends RetryJob> {
 
     private void processJob(T job) {
         try {
-            if (!isStepSuccess(job, "retry")) {
-                try {
-                    retry(job);
-                    updateStepStatus(job, "retry", "SUCCESS", "Elemento guardado");
-                    saveJob(job);
-                } catch (Exception e) {
-                    updateStepStatus(job, "retry", "ERROR", e.getMessage());
-                    saveJob(job);
-                    throw e;
-                }
-            }
-
-            if (!isStepSuccess(job, "sendEmail")) {
-                try {
-                    sendSuccessEmail(job);
-                    updateStepStatus(job, "sendEmail", "SUCCESS", "Email enviado");
-                    saveJob(job);
-                } catch (Exception e) {
-                    updateStepStatus(job, "sendEmail", "ERROR", "Error al enviar el correo: " + e.getMessage());
-                    saveJob(job);
-                    throw e;
-                }
-            }
-
-            if (!isStepSuccess(job, "updateRetryJobs")) {
-                try {
-                    updateStepStatus(job, "updateRetryJobs", "SUCCESS", "Elemento guardado correctamente");
-                    markAsSuccess(job);
-                } catch (Exception e) {
-                    updateStepStatus(job, "updateRetryJobs", "ERROR", "Error al actualizar estado final: " + e.getMessage());
-                    saveJob(job);
-                    throw e;
-                }
-            }
-
+            firstHandler.handle(job, this);
         } catch (Exception e) {
             handleFailure(job, e);
         }
     }
 
-    protected abstract void saveJob(T job);
+    public abstract void saveJob(T job);
 
-    protected boolean isStepSuccess(T job, String step) {
+    public boolean isStepSuccess(T job, String step) {
         try {
             if (job.getStepStatus() == null || job.getStepStatus().isEmpty()) {
                 return false;
@@ -90,7 +73,7 @@ public abstract class AbstractRetryScheduler<T extends RetryJob> {
         }
     }
 
-    protected void updateStepStatus(T job, String step, String status, String message) {
+    public void updateStepStatus(T job, String step, String status, String message) {
         try {
             Map<String, StepResult> statusMap;
             if (job.getStepStatus() == null || job.getStepStatus().isEmpty()) {
@@ -106,9 +89,9 @@ public abstract class AbstractRetryScheduler<T extends RetryJob> {
         }
     }
 
-    protected abstract void retry(T job) throws Exception;
+    public abstract void retry(T job) throws Exception;
 
-    protected void markAsSuccess(T job) {
+    public void markAsSuccess(T job) {
         job.setStatus("SUCCESS");
         saveJob(job);
     }
@@ -127,7 +110,7 @@ public abstract class AbstractRetryScheduler<T extends RetryJob> {
         saveJob(job);
     }
 
-    protected void sendSuccessEmail(T job) throws Exception {
+    public void sendSuccessEmail(T job) throws Exception {
         emailService.sendEmail(
                 "ventthos@gmail.com",
                 "Operación exitosa",
