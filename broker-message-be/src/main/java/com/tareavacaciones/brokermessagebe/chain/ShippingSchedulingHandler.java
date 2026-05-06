@@ -6,6 +6,8 @@ import com.tareavacaciones.brokermessagebe.repository.EnvioProgramadoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+
 @Component
 @RequiredArgsConstructor
 public class ShippingSchedulingHandler extends PaymentHandler {
@@ -16,6 +18,7 @@ public class ShippingSchedulingHandler extends PaymentHandler {
         EnvioProgramado envio = EnvioProgramado.builder()
                 .ordenId(dto.getOrdenId())
                 .statusEnvio("En proceso")
+                .fechaCreacion(LocalDateTime.now())
                 .build();
         envioProgramadoRepository.save(envio);
         next(dto);

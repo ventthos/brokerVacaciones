@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "envios_programados")
 @Data
@@ -19,4 +21,5 @@ public class EnvioProgramado {
 
     private String ordenId;
     private String statusEnvio;
+    private LocalDateTime fechaCreacion;
 }
